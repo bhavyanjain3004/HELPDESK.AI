@@ -13,7 +13,9 @@
     "prepare": "husky install",
     "format": "prettier --write .",
     "test:jest": "jest",
-    "test:dates": "node --test tests/*.test.js"
+    "test:dates": "node --test tests/*.test.js",
+    "test:e2e": "cypress run",
+    "cypress:open": "cypress open"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
