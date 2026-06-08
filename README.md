@@ -29,6 +29,12 @@ pinned: false
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Vercel Deployment](https://img.shields.io/badge/Production-Live-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://helpdeskaiv1.vercel.app/)
 
+[![CI - Frontend Lint](https://github.com/Lin081984/fugui-fix-env/actions/workflows/ci.yml/badge.svg?job=frontend-lint)](https://github.com/Lin081984/fugui-fix-env/actions/workflows/ci.yml)
+[![CI - Frontend Build](https://github.com/Lin081984/fugui-fix-env/actions/workflows/ci.yml/badge.svg?job=frontend-build)](https://github.com/Lin081984/fugui-fix-env/actions/workflows/ci.yml)
+[![CI - Backend Lint](https://github.com/Lin081984/fugui-fix-env/actions/workflows/ci.yml/badge.svg?job=backend-lint)](https://github.com/Lin081984/fugui-fix-env/actions/workflows/ci.yml)
+[![CI - Backend Tests](https://github.com/Lin081984/fugui-fix-env/actions/workflows/ci.yml/badge.svg?job=backend-tests)](https://github.com/Lin081984/fugui-fix-env/actions/workflows/ci.yml)
+[![CI - Model Validation](https://github.com/Lin081984/fugui-fix-env/actions/workflows/ci.yml/badge.svg?job=model-validation)](https://github.com/Lin081984/fugui-fix-env/actions/workflows/ci.yml)
+
 <br/>
 
   <a href="https://helpdeskaiv1.vercel.app/">
@@ -102,15 +108,54 @@ To support the project and get real-time open-source project updates, please mak
 
 <br/>
 
-<div align="center">
+## Table of Contents
 
-## 📖 Navigation Hub
+- [Neural System Orchestrator](#-neural-system-orchestrator-)
+- [🎯 Why Helpdesk.AI?](#-why-helpdeskai)
+- [💎 The Enterprise Evolution](#-the-enterprise-evolution)
+- [🏗️ System Architecture](#%EF%B8%8F-system-architecture)
+- [🧠 The AI Neural Pipeline](#-the-ai-neural-pipeline)
+- [🚀 Deployment & Operations](#-deployment--operations)
+- [🗺️ Roadmap](#%EF%B8%8F-roadmap)
+- [📱 Mobile Ecosystem (V1)](#-mobile-ecosystem-v1)
+- [👥 Contributors](#-contributors)
 
-| 🧩 **Platform Vision** | 🏗️ **Under the Hood** | 🚀 **Next Steps** |
-| :--- | :--- | :--- |
-| ➧ [Why Helpdesk.AI?](#why-helpdeskai)<br>➧ [The Enterprise Evolution](#the-enterprise-evolution) | ➧ [System Architecture](#system-architecture)<br>➧ [The AI Neural Pipeline](#the-ai-neural-pipeline) | ➧ [Deployment / Setup](#deploy)<br>➧ [Future Roadmap](#roadmap) |
+---
 
-</div>
+
+---
+
+## 🛠️ Tech Stack
+
+HelpDesk.AI is built with a modern, multi-layer technology stack:
+
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| **Frontend** | React | 19.2 |
+| **Frontend** | Vite | 7.x |
+| **Frontend** | TailwindCSS | 3.4 |
+| **Frontend** | React Router | 7.x |
+| **Frontend** | Zustand | 5.x |
+| **Frontend** | Ant Design (antd) | 6.x |
+| **Frontend** | Recharts | 3.x |
+| **Frontend** | Framer Motion | 12.x |
+| **Frontend** | Tesseract.js (OCR) | 7.x |
+| **Mobile** | React Native + Expo | SDK 54 |
+| **Mobile** | Expo Router / Navigation | 7.x |
+| **Backend** | FastAPI | 0.104+ |
+| **Backend** | Python | 3.10 |
+| **Backend** | Uvicorn | 0.24+ |
+| **Backend** | PyTorch | 2.0+ |
+| **Backend** | HuggingFace Transformers | 4.35+ |
+| **Backend** | Sentence-Transformers | 2.2+ |
+| **Backend** | EasyOCR | latest |
+| **AI/ML** | Google Gemini (google-genai) | latest |
+| **AI/ML** | DistilBERT Classifier | custom |
+| **AI/ML** | NER Model | custom |
+| **Database** | Supabase (PostgreSQL) | 2.22 |
+| **Deployment** | Docker | python:3.10-slim |
+| **Deployment** | Vercel | production |
+| **Deployment** | HuggingFace Spaces | docker |
 
 <br/>
 
@@ -250,6 +295,57 @@ npm install
 npm run dev
 ```
 
+### Healthcheck Verification Checklist
+Use this checklist after local Docker/container startup and before promoting a deployment:
+
+1. **Confirm the API process is listening**
+   ```bash
+   curl -fsS http://localhost:7860/health
+   ```
+   Expected result: HTTP 200 with `status: "ok"`. This confirms the FastAPI app is reachable.
+
+2. **Check readiness for model-dependent traffic**
+   ```bash
+   curl -fsS http://localhost:7860/ready
+   ```
+   Expected result: HTTP 200 with `status: "ready"` when required model services and configured dependencies are available. A 503 response means at least one readiness check is still failing and the instance should not receive production traffic yet.
+
+3. **Run the container healthcheck script**
+   ```bash
+   cd backend
+   HEALTHCHECK_URL=http://localhost:7860/ready python healthcheck.py
+   ```
+   Expected result: exit code `0`. Override `HEALTHCHECK_TIMEOUT_SECONDS` if the local environment needs a longer probe timeout.
+
+4. **Verify runtime configuration**
+   - Set `REQUIRE_SUPABASE=true` when the deployment must fail readiness without Supabase configuration.
+   - Use `ALLOW_DEGRADED_STARTUP=1` only for local development or controlled smoke tests where duplicate-index and RAG availability are optional.
+   - Confirm frontend `VITE_BACKEND_URL` points to the same backend URL being checked.
+
+5. **Inspect deployment logs if readiness fails**
+   - Review startup logs for classifier, NER, duplicate-index, RAG, and Supabase initialization messages.
+   - Re-run `/ready` after fixing configuration or model asset issues.
+   - Do not route user traffic to the instance until readiness returns `ready`.
+
+---
+
+<h2 id="tech-stack">⚙️ Tech Stack</h2>
+
+| Category | Technology | Purpose |
+|---|---|---|
+| **Backend Framework** | [FastAPI](https://fastapi.tiangolo.com/) | High-performance async REST API |
+| **AI/ML** | [Google Gemini](https://ai.google.dev/) | AI-powered ticket analysis & summarization |
+| **AI/ML** | [DistilBERT](https://huggingface.co/distilbert-base-uncased) + [Sentence Transformers](https://www.sbert.net/) | Ticket categorization & semantic search |
+| **Database** | [Supabase](https://supabase.com/) (PostgreSQL) | Multi-tenant data storage with Row-Level Security |
+| **Frontend** | [Next.js](https://nextjs.org/) + [Tailwind CSS](https://tailwindcss.com/) | Modern reactive dashboard UI |
+| **Containerization** | [Docker](https://www.docker.com/) | Consistent deployment across environments |
+| **CI/CD** | [GitHub Actions](https://github.com/features/actions) | Automated testing and deployment |
+| **Rate Limiting** | [SlowAPI](https://pypi.org/project/slowapi/) | API rate limiting and DoS protection |
+| **Mobile** | Android (Kotlin) | Native mobile app for on-the-go ticket management |
+| **Monitoring** | [LogRocket](https://logrocket.com/) | Session replay and frontend error tracking |
+
+> See `.env.example` for required environment variables.
+
 ---
 
 <h2 id="roadmap">🗺️ Roadmap</h2>
@@ -288,12 +384,3 @@ Thanks goes to these wonderful people for contributing to this project ❤️
 <div align="center">
 Built with <span style="color:#10b981;">💚</span> by the <strong>HELPDESK.AI Professional</strong> Team.
 </div>
-
-
-## Local Docker Deployment Verification Checklist
-
-Before deploying your container to staging or production, verify:
-- [ ] Port binding configuration maps correctly (default `7860`).
-- [ ] Volumetric storage binds persist datasets like `final_dataset.xlsx`.
-- [ ] Database credentials (`SUPABASE_URL`, `SUPABASE_KEY`) are passed correctly.
-- [ ] Container health check is active and returns status green.

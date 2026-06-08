@@ -1,8 +1,12 @@
 
+import logging
 import os
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from backend.dependencies import supabase
 from backend.models import LoginBody, SignupBody
+from backend.limiter import limiter, AUTH_LIMIT
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 ACCESS_COOKIE = "access_token"
@@ -75,7 +79,15 @@ async def get_current_user(request: Request) -> dict:
 
 
 @router.post("/login")
+@limiter.limit(AUTH_LIMIT)
 async def auth_login(body: LoginBody, response: Response):
+    """Authenticate a user with email and password.
+
+    On success, sets HttpOnly session cookies (access_token + refresh_token)
+    and returns the authenticated user profile.
+
+    Rate limited to 5 requests/minute per IP to prevent brute-force attacks.
+    """
     if not supabase:
         raise HTTPException(status_code=503, detail="Database connection offline")
     try:
@@ -83,7 +95,8 @@ async def auth_login(body: LoginBody, response: Response):
             {"email": body.email, "password": body.password}
         )
     except Exception as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
+        logger.error("Login attempt failed", exc_info=exc)
+        raise HTTPException(status_code=401, detail="Invalid email or password") from exc
 
     session = getattr(result, "session", None)
     user = getattr(result, "user", None)
@@ -95,7 +108,15 @@ async def auth_login(body: LoginBody, response: Response):
     return {"user": user_payload, "message": "Session cookies set"}
 
 @router.post("/signup")
+@limiter.limit(AUTH_LIMIT)
 async def auth_signup(body: SignupBody, response: Response):
+    """Register a new user account.
+
+    Accepts email, password, and optional full_name/role/company metadata.
+    On success, auto-authenticates the new user and sets session cookies.
+
+    Rate limited to 5 requests/minute per IP to prevent abuse.
+    """
     if not supabase:
         raise HTTPException(status_code=503, detail="Database connection offline")
     metadata = {}
@@ -115,7 +136,8 @@ async def auth_signup(body: SignupBody, response: Response):
             }
         )
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.error("Signup attempt failed", exc_info=exc)
+        raise HTTPException(status_code=400, detail="Signup failed. Please try again.") from exc
 
     session = getattr(result, "session", None)
     user = getattr(result, "user", None)
@@ -126,10 +148,12 @@ async def auth_signup(body: SignupBody, response: Response):
 
 @router.post("/logout")
 async def auth_logout(response: Response):
+    """Clear session cookies to log out the current user."""
     _clear_session_cookies(response)
     return {"ok": True}
 
 @router.get("/me")
 async def auth_me(user: dict = Depends(get_current_user)):
+    """Return the currently authenticated user's profile."""
     return {"user": user}
 
