@@ -10,6 +10,8 @@ export const DEFAULT_ADMIN_SETTINGS = {
     enableEncryption: false,
     enablePiiRedaction: false,
     redactIpAddresses: false,
+    ticketCreationEmailSubject: "",
+    ticketCreationEmailBodyHtml: "",
 };
 
 export const resolveCompanyId = (profile, user) => {
@@ -37,6 +39,8 @@ export const settingsFromSystemSettingsRow = (row, fallback = DEFAULT_ADMIN_SETT
         enableEncryption: row.enable_encryption ?? fallback.enableEncryption,
         enablePiiRedaction: row.enable_pii_redaction ?? fallback.enablePiiRedaction,
         redactIpAddresses: row.redact_ip_addresses ?? fallback.redactIpAddresses,
+        ticketCreationEmailSubject: row.ticket_creation_email_subject ?? fallback.ticketCreationEmailSubject,
+        ticketCreationEmailBodyHtml: row.ticket_creation_email_body_html ?? fallback.ticketCreationEmailBodyHtml,
     };
 };
 
@@ -53,4 +57,6 @@ export const settingsToSystemSettingsRow = (settings, companyId) => ({
     enable_encryption: Boolean(settings.enableEncryption),
     enable_pii_redaction: Boolean(settings.enablePiiRedaction),
     redact_ip_addresses: Boolean(settings.redactIpAddresses),
+    ticket_creation_email_subject: settings.ticketCreationEmailSubject || null,
+    ticket_creation_email_body_html: settings.ticketCreationEmailBodyHtml || null,
 });

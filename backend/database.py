@@ -28,7 +28,7 @@ def get_system_settings(company_id: str) -> dict:
         return defaults
     try:
         res = supabase.table("system_settings").select(
-            "ai_confidence_threshold, duplicate_sensitivity, enable_auto_resolve"
+            "ai_confidence_threshold, duplicate_sensitivity, enable_auto_resolve, ticket_creation_email_subject, ticket_creation_email_body_html"
         ).eq("company_id", company_id).single().execute()
         if res.data:
             return {**defaults, **res.data}

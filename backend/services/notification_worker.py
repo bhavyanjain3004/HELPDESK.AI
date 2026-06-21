@@ -151,6 +151,7 @@ class NotificationWorker:
             ticket_url=payload.get("ticket_url") or "",
             actor_name=payload.get("actor_name") or "",
             comment_excerpt=payload.get("comment_excerpt") or "",
+            company_id=row.get("company_id") or "",
         )
         result = self.email_service.send_ticket_email(context)
 

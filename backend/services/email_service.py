@@ -21,6 +21,8 @@ from typing import Optional
 from dotenv import load_dotenv
 from jinja2 import Environment, select_autoescape
 
+from backend.database import get_system_settings
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -40,6 +42,7 @@ class TicketEmailContext:
     ticket_url: str = ""
     actor_name: str = ""
     comment_excerpt: str = ""
+    company_id: str = ""
 
 
 @dataclass
@@ -173,10 +176,30 @@ class EmailService:
     def build_ticket_email(self, context: TicketEmailContext) -> tuple[str, str, str]:
         event_copy = self.EVENT_COPY.get(context.event_type, self.EVENT_COPY["ticket_updated"])
         ticket_url = context.ticket_url or self.build_ticket_url(context.ticket_id)
-        subject_ref = f" #{context.ticket_id}" if context.ticket_id else ""
-        subject = f"[HELPDESK.AI]{subject_ref} {event_copy['subject']}"
+        
+        # Load custom settings if available
+        custom_subject = None
+        custom_html = None
+        if context.event_type == "ticket_created" and context.company_id:
+            settings = get_system_settings(context.company_id)
+            custom_subject = settings.get("ticket_creation_email_subject")
+            custom_html = settings.get("ticket_creation_email_body_html")
 
-        template = self.jinja_env.from_string(self.TEMPLATE)
+        if custom_subject:
+            # Render any placeholders in the custom subject
+            subject_template = self.jinja_env.from_string(custom_subject)
+            subject = subject_template.render(
+                ticket_id=context.ticket_id,
+                ticket_title=context.ticket_title,
+                recipient_name=context.recipient_name,
+                company_name="Company" # Simplification for placeholder mapping
+            )
+        else:
+            subject_ref = f" #{context.ticket_id}" if context.ticket_id else ""
+            subject = f"[HELPDESK.AI]{subject_ref} {event_copy['subject']}"
+
+        template_source = custom_html if custom_html else self.TEMPLATE
+        template = self.jinja_env.from_string(template_source)
         html = template.render(
             heading=event_copy["heading"],
             body=event_copy["body"],
